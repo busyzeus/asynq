@@ -31,14 +31,59 @@ const DefaultQueueName = "default"
 // DefaultQueue is the redis key for the default queue.
 var DefaultQueue = PendingKey(DefaultQueueName)
 
-// Global Redis keys.
 const (
-	AllServers    = "asynq:servers"    // ZSET
-	AllWorkers    = "asynq:workers"    // ZSET
-	AllSchedulers = "asynq:schedulers" // ZSET
-	AllQueues     = "asynq:queues"     // SET
-	CancelChannel = "asynq:cancel"     // PubSub channel
+	ALL_SERVERS_PREFIX       = "asynq:servers"    // ZSET
+	ALL_WORKERS_PREFIX       = "asynq:workers"    // ZSET
+	ALL_SCHEDULERS_PREFIX    = "asynq:schedulers" // ZSET
+	ALL_QUEUES_PREFIX        = "asynq:queues"     // SET
+	CANCEL_CHANNEL_PREFIX    = "asynq:cancel"     // PubSub channel
+	QUEUE_KEY_PREFIX         = "asynq:"
+	SERVER_INFO_PREFIX       = "asynq:servers:"
+	WORKERS_PREFIX           = "asynq:workers:"
+	SCHEDULER_ENTRIES_PREFIX = "asynq:schedulers:"
+	SCHEDULER_HISTORY_PREFIX = "asynq:scheduler_history:"
 )
+
+// Global Redis keys.
+var (
+	keyPrefix     = ""
+	AllServers    = ALL_SERVERS_PREFIX    // ZSET
+	AllWorkers    = ALL_WORKERS_PREFIX    // ZSET
+	AllSchedulers = ALL_SCHEDULERS_PREFIX // ZSET
+	AllQueues     = ALL_QUEUES_PREFIX     // SET
+	CancelChannel = CANCEL_CHANNEL_PREFIX // PubSub channel
+
+	queueKeyPrefix         = QUEUE_KEY_PREFIX
+	serverInfoPrefix       = SERVER_INFO_PREFIX
+	workersPrefix          = WORKERS_PREFIX
+	schedulerEntriesPrefix = SCHEDULER_ENTRIES_PREFIX
+	schedulerHistoryPrefix = SCHEDULER_HISTORY_PREFIX
+)
+
+// SetKeyPrefix sets the prefix for all Redis keys.
+func SetKeyPrefix(redisKeyPrefix string) {
+	keyPrefix = redisKeyPrefix
+
+	AllServers = keyPrefix + ALL_SERVERS_PREFIX
+	AllWorkers = keyPrefix + ALL_WORKERS_PREFIX
+	AllSchedulers = keyPrefix + ALL_SCHEDULERS_PREFIX
+	AllQueues = keyPrefix + ALL_QUEUES_PREFIX
+	CancelChannel = keyPrefix + CANCEL_CHANNEL_PREFIX
+
+	queueKeyPrefix = keyPrefix + QUEUE_KEY_PREFIX
+	serverInfoPrefix = keyPrefix + SERVER_INFO_PREFIX
+	workersPrefix = keyPrefix + WORKERS_PREFIX
+	schedulerEntriesPrefix = keyPrefix + SCHEDULER_ENTRIES_PREFIX
+	schedulerHistoryPrefix = keyPrefix + SCHEDULER_HISTORY_PREFIX
+
+	// Update DefaultQueue with the new prefix
+	DefaultQueue = PendingKey(DefaultQueueName)
+}
+
+// GetKeyPrefix returns the current key prefix.
+func GetKeyPrefix() string {
+	return keyPrefix
+}
 
 // TaskState denotes the state of a task.
 type TaskState int
@@ -104,7 +149,7 @@ func ValidateQueueName(qname string) error {
 
 // QueueKeyPrefix returns a prefix for all keys in the given queue.
 func QueueKeyPrefix(qname string) string {
-	return "asynq:{" + qname + "}:"
+	return fmt.Sprintf("%s{%s}", queueKeyPrefix, qname)
 }
 
 // TaskKeyPrefix returns a prefix for task key.
@@ -178,22 +223,22 @@ func FailedKey(qname string, t time.Time) string {
 
 // ServerInfoKey returns a redis key for process info.
 func ServerInfoKey(hostname string, pid int, serverID string) string {
-	return fmt.Sprintf("asynq:servers:{%s:%d:%s}", hostname, pid, serverID)
+	return fmt.Sprintf("%s{%s:%d:%s}", serverInfoPrefix, hostname, pid, serverID)
 }
 
 // WorkersKey returns a redis key for the workers given hostname, pid, and server ID.
 func WorkersKey(hostname string, pid int, serverID string) string {
-	return fmt.Sprintf("asynq:workers:{%s:%d:%s}", hostname, pid, serverID)
+	return fmt.Sprintf("%s{%s:%d:%s}", workersPrefix, hostname, pid, serverID)
 }
 
 // SchedulerEntriesKey returns a redis key for the scheduler entries given scheduler ID.
 func SchedulerEntriesKey(schedulerID string) string {
-	return "asynq:schedulers:{" + schedulerID + "}"
+	return fmt.Sprintf("%s{%s}", schedulerEntriesPrefix, schedulerID)
 }
 
 // SchedulerHistoryKey returns a redis key for the scheduler's history for the given entry.
 func SchedulerHistoryKey(entryID string) string {
-	return "asynq:scheduler_history:" + entryID
+	return schedulerHistoryPrefix + entryID
 }
 
 // UniqueKey returns a redis key with the given type, payload, and queue name.

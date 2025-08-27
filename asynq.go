@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/busyzeus/asynq/internal/base"
+	"github.com/redis/go-redis/v9"
 )
 
 // Task represents a unit of work to be performed.
@@ -287,9 +287,17 @@ type RedisClientOpt struct {
 	// TLS Config used to connect to a server.
 	// TLS will be negotiated only if this field is set.
 	TLSConfig *tls.Config
+
+	// KeyPrefix is used to prefix all Redis keys for multi-tenancy support.
+	// If empty, no prefix will be used.
+	KeyPrefix string
 }
 
 func (opt RedisClientOpt) MakeRedisClient() interface{} {
+	// Set the key prefix for multi-tenancy support
+	if len(opt.KeyPrefix) > 0 {
+		base.SetKeyPrefix(opt.KeyPrefix)
+	}
 	return redis.NewClient(&redis.Options{
 		Network:      opt.Network,
 		Addr:         opt.Addr,
@@ -361,9 +369,16 @@ type RedisFailoverClientOpt struct {
 	// TLS Config used to connect to a server.
 	// TLS will be negotiated only if this field is set.
 	TLSConfig *tls.Config
+
+	// KeyPrefix is used to prefix all Redis keys for multi-tenancy support.
+	// If empty, no prefix will be used.
+	KeyPrefix string
 }
 
 func (opt RedisFailoverClientOpt) MakeRedisClient() interface{} {
+	if len(opt.KeyPrefix) > 0 {
+		base.SetKeyPrefix(opt.KeyPrefix)
+	}
 	return redis.NewFailoverClient(&redis.FailoverOptions{
 		MasterName:       opt.MasterName,
 		SentinelAddrs:    opt.SentinelAddrs,
@@ -422,9 +437,16 @@ type RedisClusterClientOpt struct {
 	// TLS Config used to connect to a server.
 	// TLS will be negotiated only if this field is set.
 	TLSConfig *tls.Config
+
+	// KeyPrefix is used to prefix all Redis keys for multi-tenancy support.
+	// If empty, no prefix will be used.
+	KeyPrefix string
 }
 
 func (opt RedisClusterClientOpt) MakeRedisClient() interface{} {
+	if len(opt.KeyPrefix) > 0 {
+		base.SetKeyPrefix(opt.KeyPrefix)
+	}
 	return redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        opt.Addrs,
 		MaxRedirects: opt.MaxRedirects,
@@ -442,10 +464,11 @@ func (opt RedisClusterClientOpt) MakeRedisClient() interface{} {
 //
 // Three URI schemes are supported, which are redis:, rediss:, redis-socket:, and redis-sentinel:.
 // Supported formats are:
-//     redis://[:password@]host[:port][/dbnumber]
-//     rediss://[:password@]host[:port][/dbnumber]
-//     redis-socket://[:password@]path[?db=dbnumber]
-//     redis-sentinel://[:password@]host1[:port][,host2:[:port]][,hostN:[:port]][?master=masterName]
+//
+//	redis://[:password@]host[:port][/dbnumber]
+//	rediss://[:password@]host[:port][/dbnumber]
+//	redis-socket://[:password@]path[?db=dbnumber]
+//	redis-sentinel://[:password@]host1[:port][,host2:[:port]][,hostN:[:port]][?master=masterName]
 func ParseRedisURI(uri string) (RedisConnOpt, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
