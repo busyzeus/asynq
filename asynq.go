@@ -287,9 +287,15 @@ type RedisClientOpt struct {
 	// TLS Config used to connect to a server.
 	// TLS will be negotiated only if this field is set.
 	TLSConfig *tls.Config
+
+	// Prefix is used to prefix all Redis keys for multi-tenancy support.
+	// If empty, no prefix will be used.
+	Prefix string
 }
 
 func (opt RedisClientOpt) MakeRedisClient() interface{} {
+	// Set the key prefix for multi-tenancy support
+	base.SetKeyPrefix(opt.Prefix)
 	return redis.NewClient(&redis.Options{
 		Network:      opt.Network,
 		Addr:         opt.Addr,
@@ -361,9 +367,15 @@ type RedisFailoverClientOpt struct {
 	// TLS Config used to connect to a server.
 	// TLS will be negotiated only if this field is set.
 	TLSConfig *tls.Config
+
+	// Prefix is used to prefix all Redis keys for multi-tenancy support.
+	// If empty, no prefix will be used.
+	Prefix string
 }
 
 func (opt RedisFailoverClientOpt) MakeRedisClient() interface{} {
+	// Set the key prefix for multi-tenancy support
+	base.SetKeyPrefix(opt.Prefix)
 	return redis.NewFailoverClient(&redis.FailoverOptions{
 		MasterName:       opt.MasterName,
 		SentinelAddrs:    opt.SentinelAddrs,
@@ -422,9 +434,15 @@ type RedisClusterClientOpt struct {
 	// TLS Config used to connect to a server.
 	// TLS will be negotiated only if this field is set.
 	TLSConfig *tls.Config
+
+	// Prefix is used to prefix all Redis keys for multi-tenancy support.
+	// If empty, no prefix will be used.
+	Prefix string
 }
 
 func (opt RedisClusterClientOpt) MakeRedisClient() interface{} {
+	// Set the key prefix for multi-tenancy support
+	base.SetKeyPrefix(opt.Prefix)
 	return redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        opt.Addrs,
 		MaxRedirects: opt.MaxRedirects,
