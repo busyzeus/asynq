@@ -25,3 +25,5 @@ vendor
 # Ignore editor config files
 .vscode
 .idea
+.claude/
+*.local.md
